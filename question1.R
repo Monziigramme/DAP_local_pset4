@@ -62,6 +62,7 @@ AK <- timer_function("AK")
 
 #part 5 
 part_results <- data.frame(state = character(), n_length = numeric(), speed = numeric())
+                           
 
 for (s in unique(nurse_partitioned$state)) {
   start_time <- Sys.time()
@@ -83,8 +84,9 @@ for (s in unique(nurse_partitioned$state)) {
   total_time_non <- as.numeric(end_time_non - start_time_non, units = "secs")
   
   speed_fast <- total_time_non/total_time
-  
-  part_results <- rbind(part_results, data.frame(state = s, n_length = partition_summary$n_length, speed = speed_fast))
+
+  part_results <- rbind(part_results, 
+                        data.frame(state = s, n_length = partition_summary$n_length, speed = speed_fast))
 }
   
 p1 <- ggplot(data = part_results, aes(x = n_length, y = speed)) +
@@ -99,3 +101,57 @@ p1 <- ggplot(data = part_results, aes(x = n_length, y = speed)) +
 plot(p1)
 
 ggsave("q1part5.png", plot = p1, width = 6, height = 4, dpi = 300)
+
+#part 6
+part_results1 <- data.frame(state = character(), n_length = numeric(),
+                           total_time = numeric(), total_time_non = numeric())
+
+for (s in unique(nurse_partitioned$state)) {
+  start_time <- Sys.time()
+  
+  partition_summary <- nurse_partitioned |>
+    filter(state == s) |>
+    summarize(n_length = n())
+  
+  end_time <- Sys.time()
+  total_time <- as.numeric(end_time - start_time, units = "secs")
+  
+  start_time_non <- Sys.time()
+  
+  nonpartition_summary <- nursing_parquet_df |>
+    filter(state == s) |>
+    summarize(n_length = n())
+  
+  end_time_non <- Sys.time()
+  total_time_non <- as.numeric(end_time_non - start_time_non, units = "secs")
+  
+  diff_time <- total_time_non - total_time
+  
+  part_results1 <- rbind(part_results1, 
+                        data.frame(state = s, n_length = partition_summary$n_length,
+                                   total_time = total_time, total_time_non = total_time_non))
+}
+
+part_results_long <- part_results1 |>
+  mutate(Difference = total_time_non - total_time) |>
+  rename(Partitioned = total_time,
+         Parquet = total_time_non) |>
+  pivot_longer(
+    cols = c(Partitioned, Parquet, Difference),
+    names_to = "Data",
+    values_to = "Time"
+  ) 
+  
+p1 <- part_results_long |>
+  group_by(state) |>
+  ggplot(aes(x = state, y = Time, color = Data)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(title = "Relationship Between Data Size and Partitioning Speed By State",
+       y = "Difference in Processing Time",
+       x = "State",
+       color = "Data Type") +
+  theme_minimal()
+
+
+plot(p1)

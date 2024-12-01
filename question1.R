@@ -91,8 +91,8 @@ for (s in unique(nurse_partitioned$state)) {
   
 p1 <- ggplot(data = part_results, aes(x = n_length, y = speed)) +
     geom_point() +
-  geom_smooth(method = "lm", se = TRUE) +
-  labs(title = "Relationship Between Data Size and Partitioning Speed By State",
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Relationship Between Data Size and Partitioning Speed",
        x = "Length of data",
        y = "Speed") +
   theme_minimal()
@@ -142,16 +142,18 @@ part_results_long <- part_results1 |>
     values_to = "Time"
   ) 
   
-p1 <- part_results_long |>
+p2 <- part_results_long |>
   group_by(state) |>
-  ggplot(aes(x = state, y = Time, color = Data)) +
+  ggplot(aes(x = n_length, y = Time, color = Data)) +
   geom_point() +
-  geom_smooth(method = "lm", se = TRUE) +
-  labs(title = "Relationship Between Data Size and Partitioning Speed By State",
-       y = "Difference in Processing Time",
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Relationship Between Data Size and Partitioning Speed",
+       y = "Processing Times",
        x = "State",
        color = "Data Type") +
-  theme_minimal()
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
 
 
-plot(p1)
+plot(p2)
+ggsave("q1part6.png", plot = p2, width = 6, height = 4, dpi = 300)
